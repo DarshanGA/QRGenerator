@@ -1,5 +1,7 @@
 package org.jarc;
 
+import org.jarc.utils.QRGenerator;
+
 import javax.swing.*;
 import java.awt.*;
 
@@ -12,7 +14,7 @@ public class LeftFormPanel extends JPanel{
     private final JPanel buttonsPanel;
     private QRGenerator generator;
 
-    public LeftFormPanel(){
+    public LeftFormPanel(MainPanel parentPanel){
 
         this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         this.setBorder(BorderFactory.createTitledBorder(borderTitle));
@@ -25,7 +27,14 @@ public class LeftFormPanel extends JPanel{
         generateButton.setBackground(new Color(47, 69, 214));
         generateButton.addActionListener(e -> {
 
-            generateQrCode();
+            if(inputStringField.getText().length() == 0){
+
+                JOptionPane.showMessageDialog(null, "Empty field! provide some text.");
+            }else{
+
+                generator = new QRGenerator(inputStringField.getText());
+                parentPanel.generateButtonListener(inputStringField.getText(), generator.getQrData(),generator.getQrDimensionsPerVersion());
+            }
         });
         saveButton = new JButton(saveQrButtonText);
         saveButton.setFocusPainted(false);
@@ -39,9 +48,4 @@ public class LeftFormPanel extends JPanel{
         this.add(buttonsPanel);
     }
 
-    public void generateQrCode(){
-
-        generator = new QRGenerator(this.inputStringField.getText());
-        JOptionPane.showMessageDialog(null, "Encoded Byte String:" + generator.getByteCodeArrayString());
-    }
 }
