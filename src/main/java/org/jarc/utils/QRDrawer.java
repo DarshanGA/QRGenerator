@@ -42,7 +42,7 @@ public class QRDrawer extends JPanel {
 
                 for(int j = 0; j < qrSize / singleSquareUnit; j++){
 
-                    if( qrData[i][j] == 0)
+                    if( qrData[i][j] == BitColorMap.BLACK.getBitForColor())
                         graphics2D.setColor(Color.black);
                     else
                         graphics2D.setColor(Color.white);
@@ -54,5 +54,23 @@ public class QRDrawer extends JPanel {
             }
         }
 
+    }
+
+    public enum BitColorMap{
+
+        BLACK(1),
+        WHITE(0);
+
+        private final int bitForColor;
+
+        BitColorMap(int givenBitForColor){
+
+            this.bitForColor = givenBitForColor;
+        }
+
+        public int getBitForColor(){
+
+            return this.bitForColor;
+        }
     }
 }

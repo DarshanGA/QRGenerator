@@ -8,8 +8,13 @@ public class QRGenerator {
             alignmentPatternDim = 5,
             alignmentPatternStartCordinate,
             timingPatternStartIndex = 6,
-            timingPatternLength, mandateBlackSquareRow;
-    private final String inputString;
+            timingPatternLength,
+            mandateBlackSquareRow,
+            blackColorCode = QRDrawer.BitColorMap.BLACK.getBitForColor(),
+            whiteColorCode = QRDrawer.BitColorMap.WHITE.getBitForColor();
+    private final String inputString, xorMaskedPattern = "101010000010010";
+    private final QRDataFormatSpecifier dataFormatSpecifier;// this is for binary.
+    private final QRErrorCorrectionLevel errorCorrectionLevel;
     private String byteCodeArrayString = "";
     private final QRCodeVersions version;
     private final int qrDimensionsPerVersion;
@@ -19,12 +24,14 @@ public class QRGenerator {
 
         this.inputString = givenString;
         this.version = QRCodeVersions.V2;
-        this.qrDimensionsPerVersion = setQrDimensionsForVersion();
+        this.qrDimensionsPerVersion = version.getQrDimensionsPerVersion();
         this.qrData = new int[qrDimensionsPerVersion][qrDimensionsPerVersion];
         this.commonIndexFromEnd = qrDimensionsPerVersion - finderPatternDim;
         this.alignmentPatternStartCordinate = qrDimensionsPerVersion - (4 + alignmentPatternDim);
         this.timingPatternLength = qrDimensionsPerVersion - (2 * finderPatternDim) + 2; // one unit square white space along the inner side of finder pattern.
         this.mandateBlackSquareRow = qrDimensionsPerVersion - (finderPatternDim + 1); // 1 is spacer that surrounds the finder pattern.
+        this.dataFormatSpecifier = QRDataFormatSpecifier.BINARY;
+        this.errorCorrectionLevel = QRErrorCorrectionLevel.MEDIUM;
         generate();
     }
 
@@ -39,13 +46,15 @@ public class QRGenerator {
                     qrData[i][j] = 1;
                 else
                     qrData[i][j] = 0;*/
-                qrData[i][j] = 1;
+                qrData[i][j] = whiteColorCode;
             }
         }
         addFinderPattern();
         addAlignmentPattern();
         addTimingPatterns();
         addBlackUnitSquareByDesign();
+        addDataFormatSpecifierPattern();
+        addErrorCorrectionLevelData();
     }
 
     private void convertToByteArray(){
@@ -65,11 +74,11 @@ public class QRGenerator {
             for(int j = 0; j < finderPatternDim; j++){
 
                 if((i >= 1 && i <= 5) && ((j == 1 || j == 5))) // this is to get that one unit square of white strip inside position squares.
-                    temp = 1;
+                    temp = whiteColorCode;
                 else if((j >= 1 && j <= 5) && ((i == 1 || i == 5))) // this is to get that one unit square of white strip inside position squares.
-                    temp = 1;
+                    temp = whiteColorCode;
                 else
-                    temp = 0;
+                    temp = blackColorCode;
                 // top left corner position square patch.
                 qrData[i][j] = temp;
 
@@ -91,11 +100,11 @@ public class QRGenerator {
             for(int j = 0; j < alignmentPatternDim; j++){
 
                 if((i >= 1 && i <= 3) && ((j == 1 || j == 3))) // this is to get that one unit square of white strip inside position squares.
-                    temp = 1;
+                    temp = whiteColorCode;
                 else if((j >= 1 && j <= 3) && ((i == 1 || i == 3))) // this is to get that one unit square of white strip inside position squares.
-                    temp = 1;
+                    temp = whiteColorCode;
                 else
-                    temp = 0;
+                    temp = blackColorCode;
                 qrData[i + alignmentPatternStartCordinate][j + alignmentPatternStartCordinate] = temp;
             }
         }
@@ -109,9 +118,9 @@ public class QRGenerator {
         for(int i = 0; i < timingPatternLength; i++){
 
             if((i + 2) % 2 == 0)
-                temp = 0;
+                temp = blackColorCode;
             else
-                temp = 1;
+                temp = whiteColorCode;
             qrData[6][i + timingPatternStartIndex] = temp;
             qrData[i + timingPatternStartIndex][6] = temp;
         }
@@ -120,7 +129,28 @@ public class QRGenerator {
     // there is a single unit square near to bottom left finder square pattern which is always black by design.
     private void addBlackUnitSquareByDesign(){
 
-        qrData[mandateBlackSquareRow][8] = 0;
+        qrData[mandateBlackSquareRow][8] = 1;
+    }
+
+    // to add the data format specifier pattern, which indicates what type of data is encoded in QR.
+    private void addDataFormatSpecifierPattern(){
+
+        for(int i = 0; i < dataFormatSpecifier.getFormatCode().length() / 2; i++){
+
+            qrData[(qrDimensionsPerVersion - 1) - i][(qrDimensionsPerVersion - 1)]
+                    = dataFormatSpecifier.getFormatCode().charAt(i * 2) == '1' ? blackColorCode : whiteColorCode;
+            qrData[(qrDimensionsPerVersion - 1) - i][(qrDimensionsPerVersion - 1) - 1]
+                    = dataFormatSpecifier.getFormatCode().charAt((i * 2) + 1) == '1' ? blackColorCode : whiteColorCode;
+        }
+    }
+
+    // adding the error correction details in the format strip.
+    private void addErrorCorrectionLevelData(){
+
+        qrData[8][0] = errorCorrectionLevel.getErrorCorrectionId().charAt(0) == '1' ? blackColorCode : whiteColorCode;
+        qrData[qrDimensionsPerVersion - 1][8] = errorCorrectionLevel.getErrorCorrectionId().charAt(0) == '1' ? blackColorCode : whiteColorCode;
+        qrData[8][1] = errorCorrectionLevel.getErrorCorrectionId().charAt(1) == '1' ? blackColorCode : whiteColorCode;
+        qrData[(qrDimensionsPerVersion - 1) - 1][0] = errorCorrectionLevel.getErrorCorrectionId().charAt(1) == '1' ? blackColorCode : whiteColorCode;
     }
 
     public String getByteCodeArrayString(){
@@ -133,17 +163,6 @@ public class QRGenerator {
         return this.qrData;
     }
 
-    private int setQrDimensionsForVersion(){
-
-        // this can also be done dynamically using this formula
-        // Size = (Version Number × 4) + 17
-        switch(this.version){
-
-            case V2: return 25;
-            default: return 21;
-        }
-    }
-
     public int getQrDimensionsPerVersion(){
 
         return this.qrDimensionsPerVersion;
@@ -151,7 +170,59 @@ public class QRGenerator {
 
     public enum QRCodeVersions{
 
-        V1,
-        V2
+        V1(21),
+        V2(25);
+
+        private final int qrDimensionsPerVersion;
+
+        QRCodeVersions(int givenDim){
+
+            this.qrDimensionsPerVersion = givenDim;
+        }
+
+        public int getQrDimensionsPerVersion(){
+
+            return this.qrDimensionsPerVersion;
+        }
+    }
+
+    public enum QRDataFormatSpecifier{
+
+        NUMERIC("0001"),
+        ALPHANUMERIC("0010"),
+        BINARY("0100"),
+        JAPANESEKENJI("1000");
+
+        private final String formatCode;
+
+        QRDataFormatSpecifier(String givenFormatCode){
+
+            this.formatCode = givenFormatCode;
+        }
+
+        public String getFormatCode(){
+
+            return this.formatCode;
+        }
+    }
+
+    public enum QRErrorCorrectionLevel{
+
+        LOW("11"),
+        MEDIUM("10"),
+        QUARTILE("01"),
+        HIGH("00");
+
+        private final String errorCorrectionId;
+
+        QRErrorCorrectionLevel(String givenId){
+
+            this.errorCorrectionId = givenId;
+        }
+
+        public String getErrorCorrectionId(){
+
+            return this.errorCorrectionId;
+        }
     }
 }

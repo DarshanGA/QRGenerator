@@ -1,5 +1,10 @@
 # QRGenerator
 
+##Bit color association
+**1 :** Black
+
+**0 :** White
+
 ##Algorithm for position squares
 ####Pre-requisite:
 Calculate the common index from end for these 3 position squares -> 
