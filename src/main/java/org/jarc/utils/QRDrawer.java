@@ -34,7 +34,7 @@ public class QRDrawer extends JPanel {
         currentY = drawY;
         if(qrData ==  null){
 
-            graphics2D.drawRect(currentX, currentY, qrSize, qrSize);
+            graphics2D.fillRect(currentX, currentY, qrSize, qrSize);
         }
         else{
 

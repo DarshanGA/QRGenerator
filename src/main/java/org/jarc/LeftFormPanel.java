@@ -22,6 +22,7 @@ public class LeftFormPanel extends JPanel{
         inputStringField = new JTextField(15);
         inputStringField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30)); // Set height
         inputStringField.setPreferredSize(new Dimension(150, 30));
+        inputStringField.setText("https://google.com"); // placeholder for now, we'll have this removed.
         generateButton = new JButton(submitButtonText);
         generateButton.setFocusPainted(false);
         generateButton.setBackground(new Color(47, 69, 214));
@@ -30,7 +31,10 @@ public class LeftFormPanel extends JPanel{
             if(inputStringField.getText().length() == 0){
 
                 JOptionPane.showMessageDialog(null, "Empty field! provide some text.");
-            }else{
+            }
+            else if(inputStringField.getText().length() > 255)
+                JOptionPane.showMessageDialog(null, "Max 255 Character are only allowed!");
+            else{
 
                 generator = new QRGenerator(inputStringField.getText());
                 parentPanel.generateButtonListener(inputStringField.getText(), generator.getQrData(),generator.getQrDimensionsPerVersion());
@@ -39,6 +43,10 @@ public class LeftFormPanel extends JPanel{
         saveButton = new JButton(saveQrButtonText);
         saveButton.setFocusPainted(false);
         saveButton.setBackground(new Color(31, 214, 52));
+        saveButton.addActionListener(e -> {
+
+            JOptionPane.showMessageDialog(null, "Feature not fully built yet!");
+        });
         buttonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttonsPanel.add(saveButton);
         buttonsPanel.add(generateButton);

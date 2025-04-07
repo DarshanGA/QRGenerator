@@ -11,7 +11,8 @@ public class QRGenerator {
             timingPatternLength,
             mandateBlackSquareRow,
             blackColorCode = QRDrawer.BitColorMap.BLACK.getBitForColor(),
-            whiteColorCode = QRDrawer.BitColorMap.WHITE.getBitForColor();
+            whiteColorCode = QRDrawer.BitColorMap.WHITE.getBitForColor(),
+            dataFillStartIndex;
     private final String inputString, xorMaskedPattern = "101010000010010";
     private final QRDataFormatSpecifier dataFormatSpecifier;// this is for binary.
     private final QRErrorCorrectionLevel errorCorrectionLevel;
@@ -32,6 +33,7 @@ public class QRGenerator {
         this.mandateBlackSquareRow = qrDimensionsPerVersion - (finderPatternDim + 1); // 1 is spacer that surrounds the finder pattern.
         this.dataFormatSpecifier = QRDataFormatSpecifier.BINARY;
         this.errorCorrectionLevel = QRErrorCorrectionLevel.MEDIUM;
+        this.dataFillStartIndex = (qrDimensionsPerVersion -1) - (2 + 4); // '2' for data format specifier pattern, '4' for data length pattern.
         generate();
     }
 
@@ -55,6 +57,8 @@ public class QRGenerator {
         addBlackUnitSquareByDesign();
         addDataFormatSpecifierPattern();
         addErrorCorrectionLevelData();
+        addDataLength();
+        addActualStringData();
     }
 
     private void convertToByteArray(){
@@ -63,6 +67,21 @@ public class QRGenerator {
 
             this.byteCodeArrayString += String.format("%8s", Integer.toBinaryString(c)).replace(" ","0");
         }
+    }
+
+    private String getByteCode(String givenString){
+
+        String data = "";
+        for(char c : givenString.toCharArray()){
+
+            data += String.format("%8s", Integer.toBinaryString(c)).replace(" ", "0");
+        }
+        return data;
+    }
+
+    private String getByteCode(int givenInput){
+
+        return String.format("%8s", Integer.toBinaryString(givenInput)).replace(" ", "0");
     }
 
     // to add the big three position squares at bottom left, top left and top right corner of the QR.
@@ -148,10 +167,75 @@ public class QRGenerator {
     private void addErrorCorrectionLevelData(){
 
         qrData[8][0] = errorCorrectionLevel.getErrorCorrectionId().charAt(0) == '1' ? blackColorCode : whiteColorCode;
-        qrData[qrDimensionsPerVersion - 1][8] = errorCorrectionLevel.getErrorCorrectionId().charAt(0) == '1' ? blackColorCode : whiteColorCode;
+        qrData[qrDimensionsPerVersion - 1][8] = qrData[8][0];
         qrData[8][1] = errorCorrectionLevel.getErrorCorrectionId().charAt(1) == '1' ? blackColorCode : whiteColorCode;
-        qrData[(qrDimensionsPerVersion - 1) - 1][0] = errorCorrectionLevel.getErrorCorrectionId().charAt(1) == '1' ? blackColorCode : whiteColorCode;
+        qrData[(qrDimensionsPerVersion - 1) - 1][8] = qrData[8][1];
     }
+
+    // to add the length of string in binary.
+    private void addDataLength(){
+
+        String lengthByteCode = getByteCode(inputString.length());
+        int startRowIndex = (qrDimensionsPerVersion - 1) - 2; // '2' as the data format specifier pattern takes two rows from left bottom of the QR.
+        System.out.println("Converted Byte code of length: " + lengthByteCode);
+        for(int i = 0; i < lengthByteCode.length() / 2; i++){
+
+            qrData[ startRowIndex - i][(qrDimensionsPerVersion - 1)]
+                    = lengthByteCode.charAt(i * 2) == '1' ? blackColorCode : whiteColorCode;
+            qrData[startRowIndex - i][(qrDimensionsPerVersion - 1) - 1]
+                    = lengthByteCode.charAt((i * 2) + 1) == '1' ? blackColorCode : whiteColorCode;
+        }
+    }
+
+    // fill or embed the actual data into the remaining areas leaving the predefined patterns unaffected.
+    private void addActualStringData(){
+
+        int tempRowIndex = dataFillStartIndex,
+                tempColumnIndex = qrDimensionsPerVersion - 1;
+        boolean incrementIndexCount = false;
+
+        System.out.println("Starting from row index: " + tempRowIndex +
+                "\nStart from column index: " + tempColumnIndex +
+                "\nByteCoded String Data: " + byteCodeArrayString +
+                "\nLoop runs: " + byteCodeArrayString.length()/2);
+        for(int i = 0; i < byteCodeArrayString.length() / 2; i++){
+
+            System.out.println("Current Row: " + (tempRowIndex) +
+                    "\nData for Column " + tempColumnIndex + ": " + byteCodeArrayString.charAt(i * 2) +
+                    "\n Data for column " + (tempColumnIndex - 1) + ": " + byteCodeArrayString.charAt((i * 2) + 1));
+            qrData[tempRowIndex][tempColumnIndex] =
+                    byteCodeArrayString.charAt(i * 2) == '1' ? blackColorCode : whiteColorCode;
+            qrData[tempRowIndex][tempColumnIndex - 1] =
+                    byteCodeArrayString.charAt((i * 2) + 1) == '1' ? blackColorCode : whiteColorCode;
+
+            if(incrementIndexCount){
+
+                if((tempRowIndex + 1) >= qrDimensionsPerVersion
+                        || willTheseOverlapFinderPattern(tempRowIndex + 1, tempColumnIndex)){
+
+                    incrementIndexCount = false;
+                    tempColumnIndex -= 2;
+                }
+                else
+                    tempRowIndex += 1;
+
+            }
+            else{
+
+                if((tempRowIndex - 1) < 0
+                        || willTheseOverlapFinderPattern(tempRowIndex - 1, tempColumnIndex)){
+
+                    incrementIndexCount = true;
+                    tempColumnIndex -= 2;
+                }
+                else
+                    tempRowIndex -= 1;
+
+            }
+
+        }
+    }
+
 
     public String getByteCodeArrayString(){
 
@@ -167,6 +251,28 @@ public class QRGenerator {
 
         return this.qrDimensionsPerVersion;
     }
+
+    public boolean willTheseOverlapFinderPattern(int currentRowIndex, int currentColumnIndex){
+
+        if(currentRowIndex >= 0 && currentRowIndex <= 8){
+
+            if(currentColumnIndex <= (qrDimensionsPerVersion - 1) && currentColumnIndex >= (qrDimensionsPerVersion - 1 - finderPatternDim))
+                return true;
+            else if (currentColumnIndex >= 0 && currentColumnIndex <= 8)
+                return true;
+            else return false;
+        }
+        else if (currentRowIndex <= (qrDimensionsPerVersion - 1) && currentRowIndex >= (qrDimensionsPerVersion - 1 - (finderPatternDim + 1))){
+
+            if (currentColumnIndex >= 0 && currentColumnIndex <= 8)
+                return true;
+        }
+        else
+            return false;
+        return false;
+    }
+
+    //------------------------------------------------------------- ENUMs ------------------------------------------------------------
 
     public enum QRCodeVersions{
 
