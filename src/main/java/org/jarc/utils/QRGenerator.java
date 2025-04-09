@@ -3,7 +3,7 @@ package org.jarc.utils;
 public class QRGenerator {
 
     private final int byteLength = 8,
-            finderPatternDim = 7, // this is always 7 x 7 modules / unit squares for any version of QR.
+            finderPatternDim = 7, // this is always 7 x 7 modules or unit squares for any version of QR.
             commonIndexFromEnd,
             alignmentPatternDim = 5,
             alignmentPatternStartCordinate,
@@ -37,6 +37,7 @@ public class QRGenerator {
         generate();
     }
 
+    // Method that performs QR generation operation with all the relevant steps, only includes the method calls of each step.
     private void generate(){
 
         convertToByteArray();
@@ -61,6 +62,7 @@ public class QRGenerator {
         addActualStringData();
     }
 
+    // a method that performs the byte code conversion on the current object's input string and store inside the current object's byte code array.
     private void convertToByteArray(){
 
         for(char c : this.inputString.toCharArray()){
@@ -69,6 +71,7 @@ public class QRGenerator {
         }
     }
 
+    // returns the byte code as string for a given string value.
     private String getByteCode(String givenString){
 
         String data = "";
@@ -79,6 +82,7 @@ public class QRGenerator {
         return data;
     }
 
+    // returns the bite code as string for a given integer value.
     private String getByteCode(int givenInput){
 
         return String.format("%8s", Integer.toBinaryString(givenInput)).replace(" ", "0");
@@ -200,9 +204,8 @@ public class QRGenerator {
                 "\nLoop runs: " + byteCodeArrayString.length()/2);
         for(int i = 0; i < byteCodeArrayString.length() / 2; i++){
 
-            System.out.println("Current Row: " + (tempRowIndex) +
-                    "\nData for Column " + tempColumnIndex + ": " + byteCodeArrayString.charAt(i * 2) +
-                    "\n Data for column " + (tempColumnIndex - 1) + ": " + byteCodeArrayString.charAt((i * 2) + 1));
+            System.out.println("[" + (tempRowIndex) + ", " + tempColumnIndex + "] = " + byteCodeArrayString.charAt(i * 2) +
+                    "\t[" + (tempRowIndex) + ", " + (tempColumnIndex - 1) + "] = " + byteCodeArrayString.charAt((i * 2) + 1));
             qrData[tempRowIndex][tempColumnIndex] =
                     byteCodeArrayString.charAt(i * 2) == '1' ? blackColorCode : whiteColorCode;
             qrData[tempRowIndex][tempColumnIndex - 1] =
@@ -216,8 +219,17 @@ public class QRGenerator {
                     incrementIndexCount = false;
                     tempColumnIndex -= 2;
                 }
-                else
-                    tempRowIndex += 1;
+                else{
+
+                    if(willTheseOverlapAlignmentPattern(tempRowIndex + 1, tempColumnIndex)) {
+
+                        tempRowIndex += alignmentPatternDim + 1;
+                    }
+                    else {
+
+                        tempRowIndex++;
+                    }
+                }
 
             }
             else{
@@ -228,8 +240,17 @@ public class QRGenerator {
                     incrementIndexCount = true;
                     tempColumnIndex -= 2;
                 }
-                else
-                    tempRowIndex -= 1;
+                else{
+
+                    if(willTheseOverlapAlignmentPattern(tempRowIndex - 1, tempColumnIndex)) {
+
+                        tempRowIndex -= alignmentPatternDim + 1;
+                    }
+                    else {
+
+                        tempRowIndex--;
+                    }
+                }
 
             }
 
@@ -247,11 +268,13 @@ public class QRGenerator {
         return this.qrData;
     }
 
+    // getter method to return current object's QR dimension data.
     public int getQrDimensionsPerVersion(){
 
         return this.qrDimensionsPerVersion;
     }
 
+    // a method that takes current row and column index the QR -> says whether the provided co-ordinates overlap with any of the finder patterns at the corners of the QR.
     public boolean willTheseOverlapFinderPattern(int currentRowIndex, int currentColumnIndex){
 
         if(currentRowIndex >= 0 && currentRowIndex <= 8){
@@ -269,6 +292,20 @@ public class QRGenerator {
         }
         else
             return false;
+        return false;
+    }
+
+    // a method to decide whether the given row and column index of QR fall on the alignment pattern, return true if the provided indexes fall on the pattern.
+
+    public boolean willTheseOverlapAlignmentPattern(int row, int column){
+
+        if(column >= (qrDimensionsPerVersion - ( alignmentPatternDim + 4)) && column < (qrDimensionsPerVersion - 4)) {
+
+            if(row >= (qrDimensionsPerVersion - ( alignmentPatternDim + 4)) && row < (qrDimensionsPerVersion - 4)) {
+
+                return true;
+            }
+        }
         return false;
     }
 

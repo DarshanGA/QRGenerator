@@ -1,12 +1,14 @@
 # QRGenerator
 
 ##Bit color association
+
 **1 :** Black
 
 **0 :** White
 
 ##Algorithm for position squares
-####Pre-requisite:
+**Pre-requisite:**
+
 Calculate the common index from end for these 3 position squares -> 
 
     commonIndexFromEnd = qrDimensions - 7; //as 7 is fixed dimensions for these position squares.
@@ -15,9 +17,10 @@ when we consider the draw coordinates for these position squares (as per working
 2. Top right position square: (0, 7 unit squares to right from end)
 3. bottom left position square: (7 unit squares to the top from end, 0)
 
-***Common index from end:*** we pick '7 unit square from end', as this is also common data which is calculated as "Original QR dimension - 7"
+**_Common index from end:_** we pick '7 unit square from end', as this is also common data which is calculated as "Original QR dimension - 7"
 
-####Loop:
+**Loop:**
+
     Loop for 7 times for rows	
         loop for 7 times for columns
             Inside the loop: 
